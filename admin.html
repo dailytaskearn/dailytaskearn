@@ -27,34 +27,38 @@
   </style>
 </head>
 <body>
-  <h2>Admin Panel - Withdraw Requests</h2>
-  <div id="requests"></div>
+  <h2>Admin Panel - Daily Task Earn</h2>
+
+  <h3>🧾 Pending Withdraw Requests</h3>
+  <div id="withdrawRequests"></div>
+
+  <h3>💳 Pending Plan Payments</h3>
+  <div id="planApprovals"></div>
 
   <script>
-    const requestsDiv = document.getElementById("requests");
-
+    // Withdraw Requests Section
+    const withdrawDiv = document.getElementById("withdrawRequests");
     db.ref("withdrawRequests").on("value", snap => {
-      requestsDiv.innerHTML = "";
+      withdrawDiv.innerHTML = "";
       snap.forEach(child => {
         const data = child.val();
         const key = child.key;
-
-        const box = document.createElement("div");
-        box.className = "box";
-        box.innerHTML = `
-          <p><b>User ID:</b> ${data.uid}</p>
-          <p><b>Amount:</b> Rs ${data.amount}</p>
-          <p><b>TRX / Screenshot:</b> ${data.trx}</p>
-          <p><b>Status:</b> ${data.status}</p>
-          <button class="approve" onclick="approve('${key}', '${data.uid}', ${data.amount})">Approve</button>
-          <button class="reject" onclick="reject('${key}')">Reject</button>
-        `;
-        requestsDiv.appendChild(box);
+        if (data.status === "pending") {
+          const box = document.createElement("div");
+          box.className = "box";
+          box.innerHTML = `
+            <p><b>User ID:</b> ${data.uid}</p>
+            <p><b>Amount:</b> Rs ${data.amount}</p>
+            <p><b>TRX / Screenshot:</b> ${data.trx}</p>
+            <button class="approve" onclick="approveWithdraw('${key}', '${data.uid}', ${data.amount})">Approve</button>
+            <button class="reject" onclick="rejectWithdraw('${key}')">Reject</button>
+          `;
+          withdrawDiv.appendChild(box);
+        }
       });
     });
 
-    function approve(key, uid, amount) {
-      // Deduct from user's balance
+    function approveWithdraw(key, uid, amount) {
       const userRef = db.ref("users/" + uid);
       userRef.child("balance").once("value").then(snap => {
         const bal = snap.val() || 0;
@@ -64,8 +68,40 @@
       });
     }
 
-    function reject(key) {
+    function rejectWithdraw(key) {
       db.ref("withdrawRequests/" + key).update({ status: "rejected" });
+    }
+
+    // Plan Approval Section
+    const planDiv = document.getElementById("planApprovals");
+    db.ref("planPayments").on("value", snap => {
+      planDiv.innerHTML = "";
+      snap.forEach(child => {
+        const data = child.val();
+        const key = child.key;
+        if (data.status === "pending") {
+          const box = document.createElement("div");
+          box.className = "box";
+          box.innerHTML = `
+            <p><b>User ID:</b> ${data.uid}</p>
+            <p><b>Plan Amount:</b> Rs ${data.amount}</p>
+            <p><b>TRX / Screenshot:</b> ${data.trx}</p>
+            <button class="approve" onclick="approvePlan('${key}', '${data.uid}', ${data.amount}, ${data.limit})">Approve</button>
+            <button class="reject" onclick="rejectPlan('${key}')">Reject</button>
+          `;
+          planDiv.appendChild(box);
+        }
+      });
+    });
+
+    function approvePlan(key, uid, amount, limit) {
+      db.ref("users/" + uid + "/approved").set(true);
+      db.ref("users/" + uid + "/dailyLimit").set(limit);
+      db.ref("planPayments/" + key).update({ status: "approved" });
+    }
+
+    function rejectPlan(key) {
+      db.ref("planPayments/" + key).update({ status: "rejected" });
     }
   </script>
 </body>
