@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Withdraw Request - Daily Task Earn</title>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAL1SsfBNXUiSXC3hySfw4M-JTlLqiGMEE",
+      authDomain: "dailytask-earn.firebaseapp.com",
+      projectId: "dailytask-earn",
+      storageBucket: "dailytask-earn.firebasestorage.app",
+      messagingSenderId: "807698894430",
+      appId: "1:807698894430:web:03e3df5216a2dfc7a52ecf"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f2f2f2; }
+    input, button { padding: 10px; margin: 5px 0; width: 100%; }
+    .box { max-width: 400px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Withdraw Request</h2>
+    <input type="text" id="username" placeholder="Your Username" required>
+    <input type="number" id="amount" placeholder="Amount (Rs)" required>
+    <input type="text" id="trx" placeholder="TRX ID or Screenshot Link" required>
+    <button onclick="submitWithdraw()">Submit Request</button>
+  </div>
+
+  <script>
+    function submitWithdraw() {
+      const username = document.getElementById("username").value;
+      const amount = document.getElementById("amount").value;
+      const trx = document.getElementById("trx").value;
+
+      if (!username || !amount || !trx) {
+        alert("Please fill all fields!");
+        return;
+      }
+
+      const newReq = db.ref("withdrawRequests").push();
+      newReq.set({
+        username,
+        amount,
+        trx,
+        status: "pending"
+      });
+
+      alert("Withdraw request submitted!");
+      document.getElementById("username").value = "";
+      document.getElementById("amount").value = "";
+      document.getElementById("trx").value = "";
+    }
+  </script>
+</body>
+</html>
