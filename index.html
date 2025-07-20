@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Daily Task Earn - Register & Login</title>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-auth.js"></script>
+</head>
+<body>
+  <h1>Welcome to Daily Task Earn</h1>
+
+  <h3>Send Fees To:</h3>
+  <p><strong>JazzCash / EasyPaisa:</strong> 03328244271</p>
+
+  <h3>Join Our WhatsApp Channel:</h3>
+  <a href="https://whatsapp.com/channel/0029VbBnfJ7Au3aQYDF2xd0x" target="_blank">Click to Join WhatsApp Channel</a>
+
+  <hr>
+
+  <h2>Register</h2>
+  <input type="text" id="name" placeholder="Full Name"><br>
+  <input type="text" id="username" placeholder="Username"><br>
+  <input type="text" id="phone" placeholder="Phone Number"><br>
+  <input type="password" id="password" placeholder="Password"><br>
+  <button onclick="register()">Register</button>
+
+  <h2>Login</h2>
+  <input type="text" id="loginUsername" placeholder="Username"><br>
+  <input type="password" id="loginPassword" placeholder="Password"><br>
+  <button onclick="login()">Login</button>
+
+  <hr>
+  <h2>Sample Task</h2>
+  <p>Watch this video for 2 minutes to unlock the button.</p>
+  <iframe width="300" height="200" src="https://www.youtube.com/embed/kD3oFqa_o_4?si=fHRfB36EF9c19-tq" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  <br>
+  <button id="completeBtn" disabled>Complete Task</button>
+
+  <script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyAL1SsfBNXUiSXC3hySfw4M-JTlLqiGMEE",
+  authDomain: "dailytask-earn.firebaseapp.com",
+  projectId: "dailytask-earn",
+  storageBucket: "dailytask-earn.firebasestorage.app",
+  messagingSenderId: "807698894430",
+  appId: "1:807698894430:web:03e3df5216a2dfc7a52ecf"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function register() {
+      const name = document.getElementById("name").value;
+      const username = document.getElementById("username").value;
+      const phone = document.getElementById("phone").value;
+      const password = document.getElementById("password").value;
+
+      if (!name || !username || !phone || !password) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      db.ref("users/" + username).once("value", snapshot => {
+        if (snapshot.exists()) {
+          alert("Username already exists");
+        } else {
+          db.ref("users/" + username).set({
+            name: name,
+            phone: phone,
+            password: password,
+            balance: 0,
+            plan: "none"
+          });
+          alert("Registration successful");
+        }
+      });
+    }
+
+    function login() {
+      const username = document.getElementById("loginUsername").value;
+      const password = document.getElementById("loginPassword").value;
+
+      db.ref("users/" + username).once("value", snapshot => {
+        if (!snapshot.exists()) {
+          alert("User not found");
+        } else {
+          const user = snapshot.val();
+          if (user.password === password) {
+            alert("Login successful");
+          } else {
+            alert("Incorrect password");
+          }
+        }
+      });
+    }
+
+    // Timer for enabling button after 2 mins
+    setTimeout(() => {
+      document.getElementById("completeBtn").disabled = false;
+    }, 120000); // 2 minutes in milliseconds
+  </script>
+</body>
+</html>
