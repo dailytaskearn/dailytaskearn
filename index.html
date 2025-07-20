@@ -1,172 +1,165 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Daily Task Earn</title>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Task Earn - User Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js"></script>
-  <style>
-    body { margin: 0; font-family: Arial; background: #ffebee; }
-    .container { max-width: 400px; margin: auto; padding: 20px; background: white; border-radius: 10px; margin-top: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input, button { width: 100%; padding: 10px; margin: 10px 0; }
-    .hidden { display: none; }
-    h2 { text-align: center; color: #c62828; }
-    .red-btn { background: #c62828; color: white; border: none; cursor: pointer; }
-    .plan { padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; }
-    .active { border-color: #c62828; background: #fbe9e7; }
-    #dashboard { text-align: center; }
-    a { color: #c62828; text-decoration: none; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <div class="container" id="auth">
-    <h2>Daily Task Earn</h2>
-    <input type="text" id="authUsername" placeholder="Username" />
-    <input type="password" id="authPassword" placeholder="Password" />
-    <button class="red-btn" onclick="register()">Register</button>
-    <button onclick="login()">Login</button>
-  </div>
-
-  <div class="container hidden" id="plan">
-    <h2>Select Plan</h2>
-    <div class="plan" onclick="selectPlan(120)">Rs 120 - 3 Tasks Daily</div>
-    <div class="plan" onclick="selectPlan(240)">Rs 240 - 6 Tasks Daily</div>
-    <div class="plan" onclick="selectPlan(360)">Rs 360 - 9 Tasks Daily</div>
-  </div>
-
-  <div class="container hidden" id="dashboard">
-    <h2>Welcome <span id="userName"></span></h2>
-    <p>Your Plan: <span id="userPlan"></span> Rs</p>
-    <p>Balance: Rs <span id="userBalance">0</span></p>
-
-    <h3>Daily Task</h3>
-    <a href="https://youtu.be/kD3oFqa_o_4?si=fHRfB36EF9c19-tq" target="_blank">Watch Task Video</a>
-    <br><br>
-    <button class="red-btn" onclick="startTimer(this)" id="taskBtn">Complete Task (2 min)</button>
-
-    <h3>Withdraw Request</h3>
-    <input type="number" id="withdrawAmount" placeholder="Amount (Rs)" />
-    <input type="text" id="trxId" placeholder="TRX ID or Screenshot Link" />
-    <button onclick="requestWithdraw()">Submit Withdraw</button>
-
-    <h3>Refer & Earn</h3>
-    <p>Share your link and earn Rs 2 per user:</p>
-    <input type="text" id="refLink" readonly />
-
-    <h3>Join WhatsApp Channel</h3>
-    <a href="https://whatsapp.com/channel/0029VbBnfJ7Au3aQYDF2xd0x" target="_blank">Click to Join</a>
-  </div>
 
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAL1SsfBNXUiSXC3hySfw4M-JTlLqiGMEE",
       authDomain: "dailytask-earn.firebaseapp.com",
+      databaseURL: "https://dailytask-earn-default-rtdb.firebaseio.com/",
       projectId: "dailytask-earn",
       storageBucket: "dailytask-earn.appspot.com",
       messagingSenderId: "807698894430",
-      appId: "1:807698894430:web:03e3df5216a2dfc7a52ecf",
-      databaseURL: "https://dailytask-earn-default-rtdb.firebaseio.com/"
+      appId: "1:807698894430:web:03e3df5216a2dfc7a52ecf"
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
+  </script>
 
+  <style>
+    body { font-family: Arial, sans-serif; background: #ffe5e5; padding: 20px; }
+    .box { max-width: 450px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px #999; }
+    input, button { padding: 10px; width: 100%; margin-top: 10px; border-radius: 6px; border: 1px solid #ccc; }
+    h2, h3 { text-align: center; color: #cc0000; }
+    .section { margin-top: 30px; }
+    #taskBtn:disabled { background: grey; color: white; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Daily Task Earn</h2>
+
+    <div id="authSection">
+      <input type="email" id="email" placeholder="Email">
+      <input type="password" id="password" placeholder="Password">
+      <button onclick="register()">Register</button>
+      <button onclick="login()">Login</button>
+    </div>
+
+    <div id="dashboard" style="display:none">
+      <h3>Welcome, <span id="userEmail"></span></h3>
+      <p><b>Your Balance:</b> Rs <span id="userBalance">0</span></p>
+
+      <div class="section">
+        <h3>Select Your Plan</h3>
+        <button onclick="selectPlan(120, 3)">Rs 120 Plan (3 Tasks/day)</button>
+        <button onclick="selectPlan(240, 6)">Rs 240 Plan (6 Tasks/day)</button>
+        <button onclick="selectPlan(360, 9)">Rs 360 Plan (9 Tasks/day)</button>
+      </div>
+
+      <div class="section">
+        <h3>Daily Task</h3>
+        <p><a href="https://youtu.be/kD3oFqa_o_4?si=fHRfB36EF9c19-tq" target="_blank">Watch this 2 min video</a></p>
+        <button id="taskBtn" onclick="startTaskTimer()">Complete Task</button>
+        <p id="timerText"></p>
+      </div>
+
+      <div class="section">
+        <h3>Withdraw Request</h3>
+        <input type="number" id="amount" placeholder="Amount (Rs)">
+        <input type="text" id="trx" placeholder="TRX ID or Screenshot Link">
+        <button onclick="submitWithdraw()">Submit Withdraw</button>
+      </div>
+
+      <div class="section">
+        <h3>Referral</h3>
+        <p>Your Referral Link:</p>
+        <input type="text" id="refLink" readonly>
+      </div>
+
+      <div class="section">
+        <h3>Join Our WhatsApp Channel</h3>
+        <a href="https://whatsapp.com/channel/0029VbBnfJ7Au3aQYDF2xd0x" target="_blank">Join for updates</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
     let currentUser = null;
+    let tasksDone = 0;
+    let dailyLimit = 3;
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        document.getElementById("authSection").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        document.getElementById("userEmail").innerText = user.email;
+        document.getElementById("refLink").value = window.location.origin + "?ref=" + user.uid;
+        fetchBalance();
+      }
+    });
 
     function register() {
-      const user = document.getElementById('authUsername').value;
-      const pass = document.getElementById('authPassword').value;
-      if (!user || !pass) return alert("Fill all fields");
-      auth.createUserWithEmailAndPassword(user + "@dte.com", pass).then(res => {
-        db.ref("users/" + user).set({ balance: 0, plan: 0 });
-        alert("Registered! Now login");
-      }).catch(e => alert(e.message));
+      const email = document.getElementById("email").value;
+      const pass = document.getElementById("password").value;
+      auth.createUserWithEmailAndPassword(email, pass).then(() => {
+        alert("Registered successfully");
+      }).catch(err => alert(err.message));
     }
 
     function login() {
-      const user = document.getElementById('authUsername').value;
-      const pass = document.getElementById('authPassword').value;
-      if (!user || !pass) return alert("Fill all fields");
-      auth.signInWithEmailAndPassword(user + "@dte.com", pass).then(res => {
-        currentUser = user;
-        document.getElementById("auth").classList.add("hidden");
-        checkUserPlan();
-      }).catch(e => alert(e.message));
+      const email = document.getElementById("email").value;
+      const pass = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, pass).then(() => {
+        alert("Logged in successfully");
+      }).catch(err => alert(err.message));
     }
 
-    function checkUserPlan() {
-      db.ref("users/" + currentUser).once("value").then(snap => {
-        if (snap.exists() && snap.val().plan > 0) {
-          showDashboard(snap.val());
-        } else {
-          document.getElementById("plan").classList.remove("hidden");
-        }
+    function fetchBalance() {
+      db.ref("users/" + currentUser.uid + "/balance").once("value").then(snap => {
+        const bal = snap.val() || 0;
+        document.getElementById("userBalance").innerText = bal;
       });
     }
 
-    function selectPlan(amount) {
-      db.ref("users/" + currentUser).update({ plan: amount });
-      document.getElementById("plan").classList.add("hidden");
-      showDashboard({ balance: 0, plan: amount });
+    function selectPlan(amount, limit) {
+      dailyLimit = limit;
+      alert(`Plan selected: Rs ${amount} with ${limit} tasks per day`);
     }
 
-    function showDashboard(data) {
-      document.getElementById("dashboard").classList.remove("hidden");
-      document.getElementById("userName").innerText = currentUser;
-      document.getElementById("userPlan").innerText = data.plan;
-      document.getElementById("userBalance").innerText = data.balance;
-      document.getElementById("refLink").value = location.href + "?ref=" + currentUser;
-    }
+    function startTaskTimer() {
+      if (tasksDone >= dailyLimit) {
+        alert("Daily task limit reached");
+        return;
+      }
 
-    function requestWithdraw() {
-      const amt = document.getElementById("withdrawAmount").value;
-      const trx = document.getElementById("trxId").value;
-      if (!amt || !trx) return alert("Fill all fields");
-      db.ref("withdrawRequests").push({ user: currentUser, amount: amt, trx });
-      alert("Request sent");
-    }
-
-    function startTimer(btn) {
-      btn.disabled = true;
-      let secs = 120;
-      const interval = setInterval(() => {
-        btn.innerText = `Wait ${secs}s...`;
-        secs--;
-        if (secs < 0) {
-          clearInterval(interval);
-          btn.innerText = "Task Complete ✅";
-          btn.disabled = false;
-          db.ref("users/" + currentUser + "/balance").once("value").then(s => {
-            const bal = s.val() || 0;
-            db.ref("users/" + currentUser).update({ balance: bal + 5 });
-            document.getElementById("userBalance").innerText = bal + 5;
-          });
+      document.getElementById("taskBtn").disabled = true;
+      let seconds = 120;
+      const timer = setInterval(() => {
+        seconds--;
+        document.getElementById("timerText").innerText = `Wait ${seconds} seconds...`;
+        if (seconds <= 0) {
+          clearInterval(timer);
+          completeTask();
         }
       }, 1000);
     }
 
-    window.onload = function () {
-      const ref = new URLSearchParams(location.search).get("ref");
-      if (ref) localStorage.setItem("refUser", ref);
-
-      auth.onAuthStateChanged(user => {
-        if (user) {
-          const uname = user.email.split("@")[0];
-          currentUser = uname;
-          checkUserPlan();
-
-          const refBy = localStorage.getItem("refUser");
-          if (refBy && refBy !== uname) {
-            db.ref("users/" + refBy + "/balance").once("value").then(s => {
-              const bal = s.val() || 0;
-              db.ref("users/" + refBy).update({ balance: bal + 2 });
-            });
-            localStorage.removeItem("refUser");
-          }
-        }
+    function completeTask() {
+      const ref = db.ref("users/" + currentUser.uid);
+      ref.child("balance").once("value").then(snap => {
+        const current = snap.val() || 0;
+        const updated = current + 5;
+        ref.child("balance").set(updated);
+        document.getElementById("userBalance").innerText = updated;
+        document.getElementById("taskBtn").disabled = false;
+        tasksDone++;
+        alert("Task completed! Rs 5 added");
       });
+    }
+
+    function submitWithdraw() {
+      const amount = document.getElementById("amount").value;
+      const trx = document.getElementById("trx").value;
+      if (!amount || !trx) return alert("Fill all fields");
+      db.ref("withdrawRequests").push({ uid: currentUser.uid, amount, trx, status: "pending" });
+      alert("Withdraw request sent");
     }
   </script>
 </body>
