@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel - Daily Task Earn</title>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAL1SsfBNXUiSXC3hySfw4M-JTlLqiGMEE",
+      authDomain: "dailytask-earn.firebaseapp.com",
+      projectId: "dailytask-earn",
+      storageBucket: "dailytask-earn.firebasestorage.app",
+      messagingSenderId: "807698894430",
+      appId: "1:807698894430:web:03e3df5216a2dfc7a52ecf"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f2f2f2; }
+    #panel { display: none; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+  <input type="password" id="adminPass" placeholder="Enter Admin Password">
+  <button onclick="loginAdmin()">Login</button>
+
+  <div id="panel">
+    <h3>Withdraw Requests</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Amount</th>
+          <th>TRX ID / Screenshot</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="withdrawTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const adminPassword = "admin786"; // tumhara admin password yahan rakha gaya hai
+
+    function loginAdmin() {
+      const input = document.getElementById("adminPass").value;
+      if (input === adminPassword) {
+        document.getElementById("panel").style.display = "block";
+      } else {
+        alert("Wrong password!");
+      }
+    }
+
+    // Withdraw Requests Load karna
+    db.ref("withdrawRequests").on("value", snapshot => {
+      const table = document.getElementById("withdrawTable");
+      table.innerHTML = "";
+      snapshot.forEach(child => {
+        const data = child.val();
+        const row = `
+          <tr>
+            <td>${data.username}</td>
+            <td>${data.amount}</td>
+            <td>${data.trx}</td>
+            <td>${data.status}</td>
+            <td>
+              <button onclick="updateStatus('${child.key}', 'approved')">Approve</button>
+              <button onclick="updateStatus('${child.key}', 'rejected')">Reject</button>
+            </td>
+          </tr>
+        `;
+        table.innerHTML += row;
+      });
+    });
+
+    function updateStatus(key, status) {
+      db.ref("withdrawRequests/" + key + "/status").set(status);
+    }
+  </script>
+</body>
+</html>
