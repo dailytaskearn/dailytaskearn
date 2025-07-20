@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>Daily Task Earn - User Dashboard</title>
-  <!-- ✅ Correct Firebase version (v8.10.1) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -46,14 +45,16 @@
       <h3>Welcome, <span id="userEmail"></span></h3>
       <p><b>Your Balance:</b> Rs <span id="userBalance">0</span></p>
 
-      <div class="section">
+      <div class="section" id="planSection">
         <h3>Select Your Plan</h3>
         <button onclick="selectPlan(120, 3)">Rs 120 Plan (3 Tasks/day)</button>
         <button onclick="selectPlan(240, 6)">Rs 240 Plan (6 Tasks/day)</button>
         <button onclick="selectPlan(360, 9)">Rs 360 Plan (9 Tasks/day)</button>
+        <input type="text" id="paymentProof" placeholder="TRX ID or Screenshot Link">
+        <button onclick="submitPaymentProof()">Submit Payment Proof</button>
       </div>
 
-      <div class="section">
+      <div class="section" id="taskSection" style="display:none">
         <h3>Daily Task</h3>
         <p><a href="https://youtu.be/kD3oFqa_o_4?si=fHRfB36EF9c19-tq" target="_blank">Watch this 2 min video</a></p>
         <button id="taskBtn" onclick="startTaskTimer()">Complete Task</button>
@@ -93,6 +94,7 @@
         document.getElementById("userEmail").innerText = user.email;
         document.getElementById("refLink").value = window.location.origin + "?ref=" + user.uid;
         fetchBalance();
+        checkPaymentStatus();
       }
     });
 
@@ -122,6 +124,24 @@
     function selectPlan(amount, limit) {
       dailyLimit = limit;
       alert(`Plan selected: Rs ${amount} with ${limit} tasks per day`);
+    }
+
+    function submitPaymentProof() {
+      const proof = document.getElementById("paymentProof").value;
+      if (!proof) return alert("Please provide TRX ID or Screenshot link");
+      db.ref("paymentProofs/" + currentUser.uid).set({ proof, approved: false });
+      alert("Payment proof submitted. Wait for admin approval.");
+    }
+
+    function checkPaymentStatus() {
+      db.ref("paymentProofs/" + currentUser.uid).on("value", snap => {
+        const data = snap.val();
+        if (data && data.approved === true) {
+          document.getElementById("taskSection").style.display = "block";
+        } else {
+          document.getElementById("taskSection").style.display = "none";
+        }
+      });
     }
 
     function startTaskTimer() {
@@ -156,11 +176,22 @@
     }
 
     function submitWithdraw() {
-      const amount = document.getElementById("amount").value;
+      const amount = parseInt(document.getElementById("amount").value);
       const trx = document.getElementById("trx").value;
       if (!amount || !trx) return alert("Fill all fields");
-      db.ref("withdrawRequests").push({ uid: currentUser.uid, amount, trx, status: "pending" });
-      alert("Withdraw request sent");
+
+      const userRef = db.ref("users/" + currentUser.uid);
+
+      userRef.child("balance").once("value").then(snap => {
+        const currentBal = snap.val() || 0;
+        if (currentBal < amount) return alert("Insufficient balance");
+        const updated = currentBal - amount;
+        userRef.child("balance").set(updated);
+        document.getElementById("userBalance").innerText = updated;
+
+        db.ref("withdrawRequests").push({ uid: currentUser.uid, amount, trx, status: "pending" });
+        alert("Withdraw request sent and amount deducted");
+      });
     }
   </script>
 </body>
