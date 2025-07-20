@@ -18,90 +18,99 @@
     const db = firebase.database();
   </script>
   <style>
-    body { font-family: sans-serif; background: #f9f9f9; padding: 20px; }
+    body { font-family: sans-serif; background: #f2f2f2; padding: 20px; }
     .box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px #ccc; margin-bottom: 20px; }
-    button { padding: 6px 10px; margin-right: 10px; border: none; border-radius: 6px; cursor: pointer; }
+    button { padding: 6px 12px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; }
     .approve { background: #4CAF50; color: white; }
     .reject { background: #f44336; color: white; }
-    h2 { color: #cc0000; }
+    h2, h3 { color: #cc0000; }
+    select, input { padding: 6px; margin-top: 5px; }
   </style>
 </head>
 <body>
   <h2>Admin Panel - Daily Task Earn</h2>
 
-  <h3>🧾 Pending Withdraw Requests</h3>
-  <div id="withdrawRequests"></div>
+  <div class="box">
+    <h3>Withdraw Requests</h3>
+    <div id="withdrawRequests"></div>
+  </div>
 
-  <h3>💳 Pending Plan Payments</h3>
-  <div id="planApprovals"></div>
+  <div class="box">
+    <h3>Plan Payment Approvals</h3>
+    <div id="planPayments"></div>
+  </div>
 
   <script>
-    // Withdraw Requests Section
+    // Withdraw Requests
     const withdrawDiv = document.getElementById("withdrawRequests");
     db.ref("withdrawRequests").on("value", snap => {
       withdrawDiv.innerHTML = "";
       snap.forEach(child => {
         const data = child.val();
         const key = child.key;
-        if (data.status === "pending") {
-          const box = document.createElement("div");
-          box.className = "box";
-          box.innerHTML = `
-            <p><b>User ID:</b> ${data.uid}</p>
-            <p><b>Amount:</b> Rs ${data.amount}</p>
-            <p><b>TRX / Screenshot:</b> ${data.trx}</p>
-            <button class="approve" onclick="approveWithdraw('${key}', '${data.uid}', ${data.amount})">Approve</button>
-            <button class="reject" onclick="rejectWithdraw('${key}')">Reject</button>
-          `;
-          withdrawDiv.appendChild(box);
-        }
+        const box = document.createElement("div");
+        box.className = "box";
+        box.innerHTML = `
+          <p><b>User ID:</b> ${data.uid}</p>
+          <p><b>Amount:</b> Rs ${data.amount}</p>
+          <p><b>Payment Method:</b> ${data.trx}</p>
+          <p><b>Status:</b> ${data.status}</p>
+          <select id="statusSelect-${key}">
+            <option value="pending" ${data.status === "pending" ? "selected" : ""}>Pending</option>
+            <option value="approved" ${data.status === "approved" ? "selected" : ""}>Approved</option>
+            <option value="rejected" ${data.status === "rejected" ? "selected" : ""}>Rejected</option>
+          </select>
+          <button onclick="updateWithdrawStatus('${key}', '${data.uid}', ${data.amount})">Update Status</button>
+        `;
+        withdrawDiv.appendChild(box);
       });
     });
 
-    function approveWithdraw(key, uid, amount) {
-      const userRef = db.ref("users/" + uid);
-      userRef.child("balance").once("value").then(snap => {
-        const bal = snap.val() || 0;
-        const updated = bal - amount;
-        userRef.child("balance").set(updated);
-        db.ref("withdrawRequests/" + key).update({ status: "approved" });
-      });
+    function updateWithdrawStatus(key, uid, amount) {
+      const selected = document.getElementById(`statusSelect-${key}`).value;
+      if (selected === "approved") {
+        db.ref("users/" + uid + "/balance").once("value").then(snap => {
+          const current = snap.val() || 0;
+          db.ref("users/" + uid + "/balance").set(current - amount);
+        });
+      }
+      db.ref("withdrawRequests/" + key).update({ status: selected });
+      alert("Status updated to " + selected);
     }
 
-    function rejectWithdraw(key) {
-      db.ref("withdrawRequests/" + key).update({ status: "rejected" });
-    }
-
-    // Plan Approval Section
-    const planDiv = document.getElementById("planApprovals");
+    // Plan Payments
+    const planDiv = document.getElementById("planPayments");
     db.ref("planPayments").on("value", snap => {
       planDiv.innerHTML = "";
       snap.forEach(child => {
         const data = child.val();
         const key = child.key;
-        if (data.status === "pending") {
-          const box = document.createElement("div");
-          box.className = "box";
-          box.innerHTML = `
-            <p><b>User ID:</b> ${data.uid}</p>
-            <p><b>Plan Amount:</b> Rs ${data.amount}</p>
-            <p><b>TRX / Screenshot:</b> ${data.trx}</p>
-            <button class="approve" onclick="approvePlan('${key}', '${data.uid}', ${data.amount}, ${data.limit})">Approve</button>
-            <button class="reject" onclick="rejectPlan('${key}')">Reject</button>
-          `;
-          planDiv.appendChild(box);
-        }
+        const box = document.createElement("div");
+        box.className = "box";
+        box.innerHTML = `
+          <p><b>User ID:</b> ${data.uid}</p>
+          <p><b>Plan Amount:</b> Rs ${data.amount}</p>
+          <p><b>TRX/Screenshot:</b> ${data.trx}</p>
+          <p><b>Status:</b> ${data.status}</p>
+          <select id="planSelect-${key}">
+            <option value="pending" ${data.status === "pending" ? "selected" : ""}>Pending</option>
+            <option value="approved" ${data.status === "approved" ? "selected" : ""}>Approved</option>
+            <option value="rejected" ${data.status === "rejected" ? "selected" : ""}>Rejected</option>
+          </select>
+          <button onclick="updatePlanStatus('${key}', '${data.uid}', ${data.amount}, ${data.limit})">Update Status</button>
+        `;
+        planDiv.appendChild(box);
       });
     });
 
-    function approvePlan(key, uid, amount, limit) {
-      db.ref("users/" + uid + "/approved").set(true);
-      db.ref("users/" + uid + "/dailyLimit").set(limit);
-      db.ref("planPayments/" + key).update({ status: "approved" });
-    }
-
-    function rejectPlan(key) {
-      db.ref("planPayments/" + key).update({ status: "rejected" });
+    function updatePlanStatus(key, uid, amount, limit) {
+      const selected = document.getElementById(`planSelect-${key}`).value;
+      if (selected === "approved") {
+        db.ref("users/" + uid + "/approved").set(true);
+        db.ref("users/" + uid + "/dailyLimit").set(limit);
+      }
+      db.ref("planPayments/" + key).update({ status: selected });
+      alert("Plan updated to " + selected);
     }
   </script>
 </body>
