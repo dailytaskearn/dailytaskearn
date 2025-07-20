@@ -2,14 +2,15 @@
 <html>
 <head>
   <title>Admin Panel - Daily Task Earn</title>
-  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAL1SsfBNXUiSXC3hySfw4M-JTlLqiGMEE",
       authDomain: "dailytask-earn.firebaseapp.com",
+      databaseURL: "https://dailytask-earn-default-rtdb.firebaseio.com/",
       projectId: "dailytask-earn",
-      storageBucket: "dailytask-earn.firebasestorage.app",
+      storageBucket: "dailytask-earn.appspot.com",
       messagingSenderId: "807698894430",
       appId: "1:807698894430:web:03e3df5216a2dfc7a52ecf"
     };
@@ -17,69 +18,54 @@
     const db = firebase.database();
   </script>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f2f2f2; }
-    #panel { display: none; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { padding: 10px; border: 1px solid #ccc; text-align: center; }
+    body { font-family: sans-serif; background: #f9f9f9; padding: 20px; }
+    .box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px #ccc; margin-bottom: 20px; }
+    button { padding: 6px 10px; margin-right: 10px; border: none; border-radius: 6px; cursor: pointer; }
+    .approve { background: #4CAF50; color: white; }
+    .reject { background: #f44336; color: white; }
+    h2 { color: #cc0000; }
   </style>
 </head>
 <body>
-  <h1>Admin Panel</h1>
-  <input type="password" id="adminPass" placeholder="Enter Admin Password">
-  <button onclick="loginAdmin()">Login</button>
-
-  <div id="panel">
-    <h3>Withdraw Requests</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Username</th>
-          <th>Amount</th>
-          <th>TRX ID / Screenshot</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="withdrawTable"></tbody>
-    </table>
-  </div>
+  <h2>Admin Panel - Withdraw Requests</h2>
+  <div id="requests"></div>
 
   <script>
-    const adminPassword = "admin786"; // tumhara admin password yahan rakha gaya hai
+    const requestsDiv = document.getElementById("requests");
 
-    function loginAdmin() {
-      const input = document.getElementById("adminPass").value;
-      if (input === adminPassword) {
-        document.getElementById("panel").style.display = "block";
-      } else {
-        alert("Wrong password!");
-      }
-    }
-
-    // Withdraw Requests Load karna
-    db.ref("withdrawRequests").on("value", snapshot => {
-      const table = document.getElementById("withdrawTable");
-      table.innerHTML = "";
-      snapshot.forEach(child => {
+    db.ref("withdrawRequests").on("value", snap => {
+      requestsDiv.innerHTML = "";
+      snap.forEach(child => {
         const data = child.val();
-        const row = `
-          <tr>
-            <td>${data.username}</td>
-            <td>${data.amount}</td>
-            <td>${data.trx}</td>
-            <td>${data.status}</td>
-            <td>
-              <button onclick="updateStatus('${child.key}', 'approved')">Approve</button>
-              <button onclick="updateStatus('${child.key}', 'rejected')">Reject</button>
-            </td>
-          </tr>
+        const key = child.key;
+
+        const box = document.createElement("div");
+        box.className = "box";
+        box.innerHTML = `
+          <p><b>User ID:</b> ${data.uid}</p>
+          <p><b>Amount:</b> Rs ${data.amount}</p>
+          <p><b>TRX / Screenshot:</b> ${data.trx}</p>
+          <p><b>Status:</b> ${data.status}</p>
+          <button class="approve" onclick="approve('${key}', '${data.uid}', ${data.amount})">Approve</button>
+          <button class="reject" onclick="reject('${key}')">Reject</button>
         `;
-        table.innerHTML += row;
+        requestsDiv.appendChild(box);
       });
     });
 
-    function updateStatus(key, status) {
-      db.ref("withdrawRequests/" + key + "/status").set(status);
+    function approve(key, uid, amount) {
+      // Deduct from user's balance
+      const userRef = db.ref("users/" + uid);
+      userRef.child("balance").once("value").then(snap => {
+        const bal = snap.val() || 0;
+        const updated = bal - amount;
+        userRef.child("balance").set(updated);
+        db.ref("withdrawRequests/" + key).update({ status: "approved" });
+      });
+    }
+
+    function reject(key) {
+      db.ref("withdrawRequests/" + key).update({ status: "rejected" });
     }
   </script>
 </body>
