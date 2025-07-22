@@ -1,6 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <!-- Firebase SDKs (CDN Links) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
+
+<!-- Tumhara Firebase config -->
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAL1SsfBNXUiSXC3hySfw4M-JTlLqiGMEE",
+    authDomain: "dailytask-earn.firebaseapp.com",
+    projectId: "dailytask-earn",
+    storageBucket: "dailytask-earn.appspot.com",
+    messagingSenderId: "807698894430",
+    appId: "1:807698894430:web:76d478a5acbdfaea52ecf"
+  };
+
+  // Firebase initialize karo
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+</script>
+
   <title>Daily Task Earn - User Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
