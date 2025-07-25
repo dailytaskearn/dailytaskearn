@@ -1,46 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!-- Firebase SDKs (CDN Links) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
-
-<!-- Tumhara Firebase config -->
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAL1SsfBNXUiSXC3hySfw4M-JTlLqiGMEE",
-    authDomain: "dailytask-earn.firebaseapp.com",
-    projectId: "dailytask-earn",
-    storageBucket: "dailytask-earn.appspot.com",
-    messagingSenderId: "807698894430",
-    appId: "1:807698894430:web:76d478a5acbdfaea52ecf"
-  };
-
-  // Firebase initialize karo
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-</script>
-
+  <meta charset="UTF-8">
   <title>Daily Task Earn - User Dashboard</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
 
+  <!-- Firebase Configuration -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAL1SsfBNXUiSXC3hySfw4M-JTlLqiGMEE",
       authDomain: "dailytask-earn.firebaseapp.com",
-      databaseURL: "https://dailytask-earn-default-rtdb.firebaseio.com/",
       projectId: "dailytask-earn",
       storageBucket: "dailytask-earn.appspot.com",
       messagingSenderId: "807698894430",
-      appId: "1:807698894430:web:03e3df5216a2dfc7a52ecf"
+      appId: "1:807698894430:web:76d478a5acbdfaea52ecf"
     };
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const db = firebase.database();
+    const db = firebase.firestore();
   </script>
 
   <style>
@@ -80,140 +61,85 @@
         <h3>Daily Task</h3>
         <p><a href="https://youtu.be/kD3oFqa_o_4?si=fHRfB36EF9c19-tq" target="_blank">Watch this 2 min video</a></p>
         <button id="taskBtn" onclick="startTaskTimer()">Complete Task</button>
-        <p id="timerText"></p>
-      </div>
-
-      <div class="section">
-        <h3>Withdraw Request</h3>
-        <input type="number" id="amount" placeholder="Amount (Rs)">
-        <input type="text" id="trx" placeholder="TRX ID or Screenshot Link">
-        <button onclick="submitWithdraw()">Submit Withdraw</button>
-      </div>
-
-      <div class="section">
-        <h3>Referral</h3>
-        <p>Your Referral Link:</p>
-        <input type="text" id="refLink" readonly>
-      </div>
-
-      <div class="section">
-        <h3>Join Our WhatsApp Channel</h3>
-        <a href="https://whatsapp.com/channel/0029VbBnfJ7Au3aQYDF2xd0x" target="_blank">Join for updates</a>
       </div>
     </div>
   </div>
 
   <script>
-    let currentUser = null;
-    let tasksDone = 0;
-    let dailyLimit = 3;
+    let currentUser;
 
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUser = user;
-        document.getElementById("authSection").style.display = "none";
-        document.getElementById("dashboard").style.display = "block";
-        document.getElementById("userEmail").innerText = user.email;
-        document.getElementById("refLink").value = window.location.origin + "?ref=" + user.uid;
-        fetchBalance();
-        checkPaymentStatus();
+        showDashboard(user);
       }
     });
 
     function register() {
       const email = document.getElementById("email").value;
-      const pass = document.getElementById("password").value;
-      auth.createUserWithEmailAndPassword(email, pass).then(() => {
-        alert("Registered successfully");
-      }).catch(err => alert(err.message));
+      const password = document.getElementById("password").value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(cred => {
+          return db.collection("users").doc(cred.user.uid).set({
+            uid: cred.user.uid,
+            email: email,
+            balance: 0,
+            plan: "none"
+          });
+        })
+        .then(() => alert("Registered Successfully!"))
+        .catch(err => alert(err.message));
     }
 
     function login() {
       const email = document.getElementById("email").value;
-      const pass = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, pass).then(() => {
-        alert("Logged in successfully");
-      }).catch(err => alert(err.message));
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(cred => {
+          showDashboard(cred.user);
+        })
+        .catch(err => alert(err.message));
     }
 
-    function fetchBalance() {
-      db.ref("users/" + currentUser.uid + "/balance").once("value").then(snap => {
-        const bal = snap.val() || 0;
-        document.getElementById("userBalance").innerText = bal;
+    function showDashboard(user) {
+      document.getElementById("authSection").style.display = "none";
+      document.getElementById("dashboard").style.display = "block";
+      document.getElementById("userEmail").innerText = user.email;
+
+      db.collection("users").doc(user.uid).get().then(doc => {
+        if (doc.exists) {
+          const data = doc.data();
+          document.getElementById("userBalance").innerText = data.balance || 0;
+        }
       });
     }
 
-    function selectPlan(amount, limit) {
-      dailyLimit = limit;
-      alert(`Plan selected: Rs ${amount} with ${limit} tasks per day`);
+    function selectPlan(amount, tasks) {
+      if (!currentUser) return;
+      db.collection("users").doc(currentUser.uid).update({
+        plan: amount,
+        dailyTasks: tasks
+      }).then(() => alert("Plan selected: Rs " + amount));
     }
 
     function submitPaymentProof() {
       const proof = document.getElementById("paymentProof").value;
-      if (!proof) return alert("Please provide TRX ID or Screenshot link");
-      db.ref("paymentProofs/" + currentUser.uid).set({ proof, approved: false });
-      alert("Payment proof submitted. Wait for admin approval.");
-    }
-
-    function checkPaymentStatus() {
-      db.ref("paymentProofs/" + currentUser.uid).on("value", snap => {
-        const data = snap.val();
-        if (data && data.approved === true) {
-          document.getElementById("taskSection").style.display = "block";
-        } else {
-          document.getElementById("taskSection").style.display = "none";
-        }
-      });
+      if (!proof) return alert("Please enter TRX ID or link");
+      db.collection("users").doc(currentUser.uid).update({
+        paymentProof: proof
+      }).then(() => alert("Proof submitted"));
     }
 
     function startTaskTimer() {
-      if (tasksDone >= dailyLimit) {
-        alert("Daily task limit reached");
-        return;
-      }
-
       document.getElementById("taskBtn").disabled = true;
-      let seconds = 120;
-      const timer = setInterval(() => {
-        seconds--;
-        document.getElementById("timerText").innerText = `Wait ${seconds} seconds...`;
-        if (seconds <= 0) {
-          clearInterval(timer);
-          completeTask();
-        }
-      }, 1000);
-    }
-
-    function completeTask() {
-      const ref = db.ref("users/" + currentUser.uid);
-      ref.child("balance").once("value").then(snap => {
-        const current = snap.val() || 0;
-        const updated = current + 5;
-        ref.child("balance").set(updated);
-        document.getElementById("userBalance").innerText = updated;
-        document.getElementById("taskBtn").disabled = false;
-        tasksDone++;
-        alert("Task completed! Rs 5 added");
-      });
-    }
-
-    function submitWithdraw() {
-      const amount = parseInt(document.getElementById("amount").value);
-      const trx = document.getElementById("trx").value;
-      if (!amount || !trx) return alert("Fill all fields");
-
-      const userRef = db.ref("users/" + currentUser.uid);
-
-      userRef.child("balance").once("value").then(snap => {
-        const currentBal = snap.val() || 0;
-        if (currentBal < amount) return alert("Insufficient balance");
-        const updated = currentBal - amount;
-        userRef.child("balance").set(updated);
-        document.getElementById("userBalance").innerText = updated;
-
-        db.ref("withdrawRequests").push({ uid: currentUser.uid, amount, trx, status: "pending" });
-        alert("Withdraw request sent and amount deducted");
-      });
+      setTimeout(() => {
+        db.collection("users").doc(currentUser.uid).update({
+          balance: firebase.firestore.FieldValue.increment(2)
+        }).then(() => {
+          alert("Task completed. Rs 2 added.");
+          document.getElementById("taskBtn").disabled = false;
+        });
+      }, 120000); // 2 minutes
     }
   </script>
 </body>
